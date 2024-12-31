@@ -1,2 +1,8 @@
-requests
+azure-cognitiveservices-speech
+azure-cognitiveservices-vision-computervision
+msrest
+openai
+opencv-python
+pillow
 pygame
+requests
