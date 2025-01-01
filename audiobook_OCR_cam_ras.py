@@ -11,13 +11,13 @@ import subprocess
 class VisionTextReader:
     def __init__(self):
         # Vision API credentials
-        self.vision_key = "9LmIPsS2ba2Z85lW3aTpJZKgjpCoEYbkKYSCRhyQwjQmuhDZG0bGJQQJ99ALACYeBjFXJ3w3AAAFACOGuJxl"
+        self.vision_key = "9LmIPsS2ba2Z85lW3aTpJZKgjpCoEYbkKYSCRhyQwjQmuhDZG0bGJQQJ99AKACYeBjFXJ3w3AAAFACOGuJxl"
         self.vision_endpoint = "https://visionxstudio.cognitiveservices.azure.com/"
         
         # Speech API credentials
         self.speech_key = '8QDp6O6wIPVAzyXs5KqMILclqqZqxefgBkT4vxiRzNmFr2OcXHbBJQQJ99ALACYeBjFXJ3w3AAAYACOGv8QR'
         self.speech_region = 'eastus'
-        
+    
         # Initialize clients
         self.init_vision_client()
         self.init_speech_config()
