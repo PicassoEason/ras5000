@@ -6,14 +6,12 @@ from azure.cognitiveservices.vision.computervision.models import OperationStatus
 from msrest.authentication import CognitiveServicesCredentials
 import time
 from datetime import datetime
-from picamera2 import Picamera2
-import cv2
-import numpy as np
+import subprocess
 
 class VisionTextReader:
     def __init__(self):
         # Vision API credentials
-        self.vision_key = "9LmIPsS2ba2Z85lW3aTpJZKgjpCoEYbkKYSCRhyQwjQmuhDZG0bGJQQJ99AKACYeBjFXJ3w3AAAFACOGuJxl"
+        self.vision_key = "9LmIPsS2ba2Z85lW3aTpJZKgjpCoEYbkKYSCRhyQwjQmuhDZG0bGJQQJ99ALACYeBjFXJ3w3AAAFACOGuJxl"
         self.vision_endpoint = "https://visionxstudio.cognitiveservices.azure.com/"
         
         # Speech API credentials
@@ -48,55 +46,35 @@ class VisionTextReader:
         )
 
     def capture_image(self):
-        """Capture image from camera using picamera2"""
+        """Capture image using libcamera-still"""
         try:
-            # Initialize camera
-            picam2 = Picamera2()
-            preview_config = picam2.create_preview_configuration(
-                main={"size": (1280, 720)},
-                lores={"size": (640, 480)},
-                display="lores"
-            )
-            picam2.configure(preview_config)
-            picam2.start()
+            # Generate filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = os.path.join(self.image_dir, f'capture_{timestamp}.jpg')
             
-            # Create a window for preview
-            cv2.namedWindow('Camera (Press SPACE to capture, Q to quit)')
+            # Use libcamera-still to capture image
+            print("Press Enter to capture an image...")
+            input()  # Wait for user input
             
-            while True:
-                # Get the latest frame
-                frame = picam2.capture_array()
+            # Capture image using libcamera-still
+            command = [
+                'libcamera-still',
+                '-o', filename,
+                '--width', '1920',
+                '--height', '1080',
+                '--immediate'  # Take picture immediately
+            ]
+            
+            result = subprocess.run(command, capture_output=True, text=True)
+            
+            if result.returncode == 0 and os.path.exists(filename):
+                print(f"Image captured and saved as: {filename}")
+                return filename
+            else:
+                print("Error capturing image:")
+                print(result.stderr)
+                return None
                 
-                # Convert from BGR to RGB for display
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                
-                # Display frame
-                cv2.imshow('Camera (Press SPACE to capture, Q to quit)', frame_rgb)
-                
-                # Check for key press
-                key = cv2.waitKey(1) & 0xFF
-                if key == ord(' '):  # SPACE key to capture
-                    # Generate filename with timestamp
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    filename = os.path.join(self.image_dir, f'capture_{timestamp}.jpg')
-                    
-                    # Save image
-                    cv2.imwrite(filename, frame)
-                    print(f"Image captured and saved as: {filename}")
-                    
-                    # Clean up
-                    picam2.stop()
-                    cv2.destroyAllWindows()
-                    return filename
-                    
-                elif key == ord('q'):  # Q key to quit
-                    break
-            
-            # Clean up
-            picam2.stop()
-            cv2.destroyAllWindows()
-            return None
-            
         except Exception as e:
             print(f"Error capturing image: {str(e)}")
             return None
@@ -142,7 +120,7 @@ def main():
     
     while True:
         # Capture image from camera
-        print("\nOpening camera... Press SPACE to capture an image, Q to quit")
+        print("\nOpening camera...")
         image_path = reader.capture_image()
         
         if image_path is None:
