@@ -67,7 +67,7 @@ def play_audio(filename):
         pygame.time.Clock().tick(10)
 
 class APIClient:
-    def __init__(self, base_url="http://your-server-url:8000"):
+    def __init__(self, base_url="http://192.168.100.233:3100"):
         self.base_url = base_url
         
     def send_voice_query(self, audio_file):
