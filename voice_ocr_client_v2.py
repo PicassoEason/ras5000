@@ -1,16 +1,12 @@
+import os
+import azure.cognitiveservices.speech as speechsdk
 import requests
 import pyaudio
 import wave
 import pygame
-import cv2
-import numpy as np
-from PIL import Image
-import io
+import subprocess
+from datetime import datetime
 import time
-import os
-
-# Define directory for temporary files
-TEMP_DIR = "temp_files"
 
 class AudioRecorder:
     def __init__(self):
@@ -18,11 +14,13 @@ class AudioRecorder:
         self.FORMAT = pyaudio.paInt16
         self.CHANNELS = 1
         self.RATE = 16000
-        self.RECORD_SECONDS = 5  # Recording duration in seconds
+        self.RECORD_SECONDS = 5
         
-        # Ensure temporary directory exists
-        if not os.path.exists(TEMP_DIR):
-            os.makedirs(TEMP_DIR)
+        # Ensure temporary directories exist
+        self.temp_dir = "temp_files"
+        self.image_dir = "image/temp"
+        os.makedirs(self.temp_dir, exist_ok=True)
+        os.makedirs(self.image_dir, exist_ok=True)
         
     def record_audio(self, output_filename):
         """
@@ -32,8 +30,7 @@ class AudioRecorder:
         Returns:
             str: Path to the saved audio file
         """
-        # Ensure using full path
-        output_path = os.path.join(TEMP_DIR, output_filename)
+        output_path = os.path.join(self.temp_dir, output_filename)
         
         p = pyaudio.PyAudio()
         
@@ -67,46 +64,59 @@ class AudioRecorder:
 
 class CameraCapture:
     def __init__(self):
-        self.camera = cv2.VideoCapture(0)  # Initialize camera (0 is usually the built-in camera)
+        """Initialize with image directory setup"""
+        self.image_dir = 'image/temp'
+        os.makedirs(self.image_dir, exist_ok=True)
         
-        # Ensure temporary directory exists
-        if not os.path.exists(TEMP_DIR):
-            os.makedirs(TEMP_DIR)
-        
-    def capture_image(self, output_filename):
+    def capture_image(self):
         """
-        Capture image from camera and save to file
-        Args:
-            output_filename: Name of the output image file
+        Capture image using libcamera-still
         Returns:
-            str: Path to the saved image file, or None if capture fails
+            str: Path to the captured image file, or None if capture fails
         """
-        output_path = os.path.join(TEMP_DIR, output_filename)
-        
-        ret, frame = self.camera.read()
-        if ret:
-            cv2.imwrite(output_path, frame)
-            print(f"Image saved to {output_path}")
-            return output_path
-        return None
-    
-    def release(self):
-        """Release the camera resource"""
-        self.camera.release()
+        try:
+            # Generate filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = os.path.join(self.image_dir, f'capture_{timestamp}.jpg')
+            
+            # Use libcamera-still to capture image
+            print("Press Enter to capture an image...")
+            input()
+            
+            command = [
+                'libcamera-still',
+                '-o', filename,
+                '--width', '1920',
+                '--height', '1080',
+                '--immediate'
+            ]
+            
+            result = subprocess.run(command, capture_output=True, text=True)
+            
+            if result.returncode == 0 and os.path.exists(filename):
+                print(f"Image captured and saved as: {filename}")
+                return filename
+            else:
+                print("Error capturing image:")
+                print(result.stderr)
+                return None
+                
+        except Exception as e:
+            print(f"Error capturing image: {str(e)}")
+            return None
 
 def play_audio(filename):
     """
     Play audio file using pygame
     Args:
-        filename: Name of the audio file to play
+        filename: Path to the audio file to play
     """
-    audio_path = os.path.join(TEMP_DIR, filename)
-    if not os.path.exists(audio_path):
-        print(f"Audio file not found: {audio_path}")
+    if not os.path.exists(filename):
+        print(f"Audio file not found: {filename}")
         return
         
     pygame.mixer.init()
-    pygame.mixer.music.load(audio_path)
+    pygame.mixer.music.load(filename)
     pygame.mixer.music.play()
     while pygame.mixer.music.get_busy():
         pygame.time.Clock().tick(10)
@@ -121,7 +131,7 @@ class APIClient:
         Args:
             audio_file: Path to the audio file
         Returns:
-            str: Filename of response audio, or None if request fails
+            str: Path to response audio file, or None if request fails
         """
         url = f"{self.base_url}/rag-voice-assistant"
         
@@ -135,10 +145,10 @@ class APIClient:
             response = requests.post(url, files=files)
             if response.status_code == 200:
                 # Save response audio
-                response_path = os.path.join(TEMP_DIR, "response.wav")
+                response_path = os.path.join('temp_files', "response.wav")
                 with open(response_path, "wb") as f:
                     f.write(response.content)
-                return "response.wav"
+                return response_path
             else:
                 print(f"Error: {response.status_code}")
                 return None
@@ -146,7 +156,6 @@ class APIClient:
             print(f"API request failed: {str(e)}")
             return None
         finally:
-            # Close files
             for f in files.values():
                 f[1].close()
 
@@ -157,7 +166,7 @@ class APIClient:
             image_file: Path to the image file
             audio_file: Path to the audio file
         Returns:
-            str: Filename of response audio, or None if request fails
+            str: Path to response audio file, or None if request fails
         """
         url = f"{self.base_url}/process-ocr-image-and-audio"
         
@@ -178,10 +187,10 @@ class APIClient:
             response = requests.post(url, files=files)
             if response.status_code == 200:
                 # Save response audio
-                response_path = os.path.join(TEMP_DIR, "ocr_response.wav")
+                response_path = os.path.join('temp_files', "ocr_response.wav")
                 with open(response_path, "wb") as f:
                     f.write(response.content)
-                return "ocr_response.wav"
+                return response_path
             else:
                 print(f"Error: {response.status_code}")
                 return None
@@ -189,12 +198,11 @@ class APIClient:
             print(f"API request failed: {str(e)}")
             return None
         finally:
-            # Close files
             for f in files.values():
                 f[1].close()
 
 def main():
-    # Initialize required classes
+    # Initialize components
     recorder = AudioRecorder()
     camera = CameraCapture()
     api_client = APIClient()  # Remember to change to your server URL
@@ -221,7 +229,7 @@ def main():
         elif choice == "2":
             # OCR + Voice query
             print("Taking photo...")
-            image_path = camera.capture_image("image.jpg")
+            image_path = camera.capture_image()
             
             if image_path:
                 print("Press Enter to start recording...")
@@ -240,7 +248,6 @@ def main():
         elif choice == "3":
             break
             
-    camera.release()
     print("Program ended")
 
 if __name__ == "__main__":
