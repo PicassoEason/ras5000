@@ -7,7 +7,7 @@ pip install -r requirements.txt
 
     sentence by sentence
 
-### voice_ocr_client2 (v)
+### voice_ocr_client2.py
 
 **語音查詢**
 
