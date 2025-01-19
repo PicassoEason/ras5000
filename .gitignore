@@ -1,2 +1,5 @@
 
 .codegpt
+./venv
+./__pycache__
+./.vscode

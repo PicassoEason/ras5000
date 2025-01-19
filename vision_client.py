@@ -118,7 +118,7 @@ def play_audio(filename):
         pygame.time.Clock().tick(10)
 
 class VisionAPIClient:
-    def __init__(self, base_url="http://192.168.100.233:3100"):
+    def __init__(self, base_url="http://192.168.100.160:3100"):
         self.base_url = base_url
         
     def process_image_and_query(self, image_path, audio_path):

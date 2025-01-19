@@ -18,7 +18,8 @@ def get_next_sentence():
     """
     Call API to get the URL of the next audio file
     """
-    api_url = "http://192.168.100.233:3100/next-sentence"
+    
+    api_url = "http://192.168.100.160:3100/next-sentence"
     book_id = "1735953778384-Atomic habits ( PDFDrive ) shorter.pdf"
     api_url = f"{api_url}?book_id={book_id}"
     
